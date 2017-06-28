@@ -122,12 +122,14 @@ class Router implements RouterInterface
             }
             if (!empty($path)) {
                 $this->controller = ucfirst(strtolower(array_shift($path)));
+                $this->controller = preg_replace_callback('/-\w/i', function($matches) {
+                    return substr(strtoupper($matches[0]), 1);
+                }, $this->controller);
             }
             if (!empty($path)) {
                 $this->action = strtolower(array_shift($path));
             }
         }
-        $this->controller;
     }
 
     /**
