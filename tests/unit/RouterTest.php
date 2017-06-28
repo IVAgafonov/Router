@@ -62,7 +62,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'GET';
-        $server['PATH_INFO'] = 'api/v1/unknown/index';
+        $server['PATH_INFO'] = 'api/v1/unknown-controller/index';
 
         $config = [
             'Router' => [
