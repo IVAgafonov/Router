@@ -12,7 +12,7 @@ class Router implements RouterInterface
     /**
      * @var string
      */
-    protected $apiVersion = 'v1';
+    protected $apiVersion = '';
 
     /**
      * @var string
@@ -63,16 +63,28 @@ class Router implements RouterInterface
      */
     public function run()
     {
-        $this->dispatch();
+        $this->parseRoute();
         $this->parseParams();
 
-        if (empty($this->config['Router']['Controller']['Factory'][$this->controller])
-            || !class_exists($this->config['Router']['Controller']['Factory'][$this->controller])
-        ) {
+        if ($this->apiVersion) {
+            if (empty($this->config['Router']['Controller'][$this->apiVersion]['Factory'][$this->controller])) {
+                header("HTTP/1.1 404 Not found");
+                throw new \Exception(json_encode(['error' => ['code' => 1, 'text' => 'Router: Controller not found']]));
+            }
+            $controllerFactoryClass = $this->config['Router']['Controller'][$this->apiVersion]['Factory'][$this->controller];
+        } else {
+            if (empty($this->config['Router']['Controller']['Factory'][$this->controller])) {
+                header("HTTP/1.1 404 Not found");
+                throw new \Exception(json_encode(['error' => ['code' => 1, 'text' => 'Router: Controller not found']]));
+            }
+            $controllerFactoryClass = $this->config['Router']['Controller']['Factory'][$this->controller];
+        }
+
+        if (!class_exists($controllerFactoryClass)) {
             header("HTTP/1.1 404 Not found");
             throw new \Exception(json_encode(['error' => ['code' => 1, 'text' => 'Router: Controller not found']]));
         }
-        $controllerFactoryClass = $this->config['Router']['Controller']['Factory'][$this->controller];
+
         $controllerFactory = new $controllerFactoryClass();
         $factoryInterface = '\IVAgafonov\Controller\Factory\ControllerFactoryInterface';
         if (!$controllerFactory instanceof $factoryInterface) {
@@ -91,9 +103,9 @@ class Router implements RouterInterface
     }
 
     /**
-     * Dispatch route
+     * Parse route
      */
-    protected function dispatch()
+    protected function parseRoute()
     {
         $this->action = 'index';
         $this->controller = 'Index';
@@ -118,7 +130,12 @@ class Router implements RouterInterface
         array_shift($path);
         if (is_array($path) && count($path) > 1) {
             if (!empty($path)) {
-                $this->apiVersion = strtolower(array_shift($path));
+                $version = array_shift($path);
+                $this->apiVersion = strtolower($version);
+                if (!preg_match("/v\d{1,3}/i", $this->apiVersion)) {
+                    array_unshift($path, $version);
+                    $this->apiVersion = '';
+                }
             }
             if (!empty($path)) {
                 $this->controller = ucfirst(strtolower(array_shift($path)));

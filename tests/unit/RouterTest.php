@@ -23,13 +23,40 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'GET';
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $config = [
             'Router' => [
                 'Controller' => [
                     'Factory' => [
                         'Index' => '\IVAgafonov\Controller\Factory\IndexControllerFactory'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->expectOutputString('{"status":"ok"}');
+
+        $router = new \IVAgafonov\System\Router($config, $server);
+        $this->assertInstanceOf('\IVAgafonov\System\RouterInterface', $router);
+
+        session_destroy();
+        $router->run();
+    }
+
+    public function testRouterWithValidParamsV1()
+    {
+        $server = $_SERVER;
+        $server['REQUEST_METHOD'] = 'GET';
+        $server['PATH_INFO'] = 'api/v1/index/index';
+
+        $config = [
+            'Router' => [
+                'Controller' => [
+                    'v1' => [
+                        'Factory' => [
+                            'Index' => '\IVAgafonov\Controller\v1\Factory\IndexControllerFactory'
+                        ]
                     ]
                 ]
             ]
@@ -62,7 +89,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'GET';
-        $server['PATH_INFO'] = 'api/v1/unknown-controller/index';
+        $server['PATH_INFO'] = 'api/unknown-controller/index';
 
         $config = [
             'Router' => [
@@ -83,11 +110,63 @@ class RouterTest extends \Codeception\Test\Unit
         $router->run();
     }
 
+    public function testRouterWithNonExistentControllerFactoryV1()
+    {
+        $server = $_SERVER;
+        $server['REQUEST_METHOD'] = 'GET';
+        $server['PATH_INFO'] = 'api/v1/unknown-controller/index';
+
+        $config = [
+            'Router' => [
+                'Controller' => [
+                    'v1' => [
+                        'Factory' => [
+                            'UnknownController' => '\IVAgafonov\Controller\v1\Factory\NonExistentControllerFactory'
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('{"error":{"code":1,"text":"Router: Controller not found"}}');
+
+        $router = new \IVAgafonov\System\Router($config, $server);
+        session_destroy();
+
+        $router->run();
+    }
+
+    public function testRouterWithInvalidRouterConfigV1()
+    {
+        $server = $_SERVER;
+        $server['REQUEST_METHOD'] = 'GET';
+        $server['PATH_INFO'] = 'api/v1/unknown-controller/index';
+
+        $config = [
+            'Router' => [
+                'Controller' => [
+                    'Factory' => [
+                        'UnknownController' => '\IVAgafonov\Controller\v1\Factory\NonExistentControllerFactory'
+                    ]
+                ]
+            ]
+        ];
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('{"error":{"code":1,"text":"Router: Controller not found"}}');
+
+        $router = new \IVAgafonov\System\Router($config, $server);
+        session_destroy();
+
+        $router->run();
+    }
+
     public function testRouterWithInvalidFactory()
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'GET';
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $config = [
             'Router' => [
@@ -112,7 +191,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'GET';
-        $server['PATH_INFO'] = 'api/v1/index/unknown';
+        $server['PATH_INFO'] = 'api/index/unknown';
 
         $config = [
             'Router' => [
@@ -136,7 +215,7 @@ class RouterTest extends \Codeception\Test\Unit
     public function testRouterWithEmptyRequestMethod()
     {
         $server = $_SERVER;
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $config = [
             'Router' => [
@@ -162,7 +241,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'GETS';
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $config = [
             'Router' => [
@@ -188,7 +267,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'POST';
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $_POST['testPost'] = 'testPost';
 
@@ -215,7 +294,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'POST';
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $config = [
             'Router' => [
@@ -240,7 +319,7 @@ class RouterTest extends \Codeception\Test\Unit
     {
         $server = $_SERVER;
         $server['REQUEST_METHOD'] = 'PUT';
-        $server['PATH_INFO'] = 'api/v1/index/index';
+        $server['PATH_INFO'] = 'api/index/index';
 
         $_POST['testPost'] = 'testPost';
 
