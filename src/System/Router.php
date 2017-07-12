@@ -37,24 +37,15 @@ class Router implements RouterInterface
     /**
      * @var array
      */
-    protected $server = [];
-
-    /**
-     * @var array
-     */
     protected $config = [];
 
     /**
      * Router constructor.
      *
      * @param array $config
-     * @param array $server
      */
-    public function __construct($config = [], $server = [])
+    public function __construct($config = [])
     {
-        session_start();
-        header("Content-Type: application/json; charset=utf-8");
-        $this->server = empty($server) ? $_SERVER : $server;
         $this->config = $config;
     }
 
@@ -63,22 +54,11 @@ class Router implements RouterInterface
      */
     public function run()
     {
-        $this->parseRoute();
-        $this->parseParams();
-
-        if ($this->apiVersion) {
-            if (empty($this->config['Router']['Controller'][$this->apiVersion]['Factory'][$this->controller])) {
-                header("HTTP/1.1 404 Not found");
-                throw new \Exception(json_encode(['error' => ['code' => 1, 'text' => 'Router: Controller not found']]));
-            }
-            $controllerFactoryClass = $this->config['Router']['Controller'][$this->apiVersion]['Factory'][$this->controller];
-        } else {
-            if (empty($this->config['Router']['Controller']['Factory'][$this->controller])) {
-                header("HTTP/1.1 404 Not found");
-                throw new \Exception(json_encode(['error' => ['code' => 1, 'text' => 'Router: Controller not found']]));
-            }
-            $controllerFactoryClass = $this->config['Router']['Controller']['Factory'][$this->controller];
+        if (empty($this->config['Router']['Controller'][$this->apiVersion]['Factory'][$this->controller])) {
+            header("HTTP/1.1 404 Not found");
+            throw new \Exception(json_encode(['error' => ['code' => 1, 'text' => 'Router: Controller not found']]));
         }
+        $controllerFactoryClass = $this->config['Router']['Controller'][$this->apiVersion]['Factory'][$this->controller];
 
         if (!class_exists($controllerFactoryClass)) {
             header("HTTP/1.1 404 Not found");
@@ -103,74 +83,79 @@ class Router implements RouterInterface
     }
 
     /**
-     * Parse route
+     * @param string $apiVersion
      */
-    protected function parseRoute()
+    public function setApiVersion($apiVersion)
     {
-        $this->action = 'index';
-        $this->controller = 'Index';
-        if (empty($this->server['PATH_INFO'])) {
-            header("HTTP/1.1 400 Bad request");
-            throw new \Exception(json_encode(['error' => ['code' => 10, 'text' => 'Router: Empty path info']]));
-        }
-
-        if (empty($this->server['REQUEST_METHOD'])) {
-            header("HTTP/1.1 400 Bad request");
-            throw new \Exception(json_encode(['error' => ['code' => 11, 'text' => 'Router: Invalid request method']]));
-        }
-
-        if (!in_array(strtoupper($this->server['REQUEST_METHOD']), ['GET', 'POST', 'UPDATE', 'DELETE', 'PUT', 'PATH', 'OPTIONS', 'HEAD'])) {
-            header("HTTP/1.1 405 Method not allowed");
-            throw new \Exception(json_encode(['error' => ['code' => 405, 'text' => 'Router: Method not allowed']]));
-        }
-
-        $this->method = strtoupper($this->server['REQUEST_METHOD']);
-
-        $path = explode("/", $this->server['PATH_INFO']);
-        array_shift($path);
-        if (is_array($path) && count($path) > 1) {
-            if (!empty($path)) {
-                $version = array_shift($path);
-                $this->apiVersion = strtolower($version);
-                if (!preg_match("/v\d{1,3}/i", $this->apiVersion)) {
-                    array_unshift($path, $version);
-                    $this->apiVersion = '';
-                }
-            }
-            if (!empty($path)) {
-                $this->controller = ucfirst(strtolower(array_shift($path)));
-                $this->controller = preg_replace_callback('/-\w/i', function($matches) {
-                    return substr(strtoupper($matches[0]), 1);
-                }, $this->controller);
-            }
-            if (!empty($path)) {
-                $this->action = strtolower(array_shift($path));
-            }
-        }
+        $this->apiVersion = $apiVersion;
     }
 
     /**
-     * Parse parameters
+     * @return string
      */
-    protected function parseParams()
+    public function getApiVersion()
     {
-        $this->params = [];
-        switch($this->method) {
-            case 'GET':
-                $this->params = $_GET;
-                break;
-            case 'POST':
-                if (empty($_POST)) {
-                    $_POST = (array)json_decode(trim(file_get_contents('php://input')), true);
-                }
-                $this->params = $_POST;
-                $this->params = array_merge_recursive($this->params, $_FILES);
-                $this->params = array_merge_recursive($this->params, $_GET);
-                break;
-            default:
-                $this->params = (array)json_decode(trim(file_get_contents('php://input')), true);
-                $this->params = array_merge_recursive($this->params, $_GET);
-        }
+        return $this->apiVersion;
+    }
+
+    /**
+     * @param string $controller
+     */
+    public function setController($controller)
+    {
+        $this->controller = $controller;
+    }
+
+    /**
+     * @return string
+     */
+    public function getController()
+    {
+        return $this->controller;
+    }
+
+    /**
+     * @param string $action
+     */
+    public function setAction($action)
+    {
+        $this->action = $action;
+    }
+
+    /**
+     * @return string
+     */
+    public function getAction()
+    {
+        return $this->action;
+    }
+
+    /**
+     * @param string $method
+     */
+    public function setMethod($method)
+    {
+        $this->method = $method;
+    }
+
+    public function getMethod()
+    {
+        return $this->method;
+    }
+
+    /**
+     * @param array $params
+     */
+    public function setParams($params)
+    {
+        $this->params = $params;
+    }
+
+    /**
+     * @return array
+     */
+    public function getParams()
+    {
         return $this->params;
     }
 }
